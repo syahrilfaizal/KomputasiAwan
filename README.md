@@ -127,3 +127,135 @@ Jalankan aplikasi Flask:
     ```bash
     http://localhost:5173/
     ```
+
+
+# Modul Praktikum 05 - Integrasi Flask dengan PostgreSQL
+
+1. Masuk kedalam virtual environment proyek Flask
+    ```bash
+    .\venv\Scripts\activate
+    ```
+
+2. Menginstall Psycopg2 dengan perintah
+    ```bash
+    pip install psycopg2
+    ```
+3. jika ada masalah gunakan perintah
+    ```
+    pip install psycopg2-binary
+    ```
+5. Melakukan verifikasi instalasi menggunakan perintah
+    ```bash
+    pip show psycopg2-binary
+    ```
+6. Membuat Koneksi database di PostgreSQL di file app.py, pastikan mengubah database sesuai dengan databasse kalian, begutupun dengan username dan password
+    ```bash
+    import psycopg2
+
+    # Tambahkan di bagian atas file sebelum deklarasi route
+    def get_db_connection():
+        conn = psycopg2.connect(
+            host="localhost",
+            database="test_db",
+            user="student",
+            password="password"
+        )
+        return conn
+
+    from flask import Flask, jsonify
+
+    app = Flask(__name__)
+
+    @app.route('/')
+    def home():
+        return jsonify({"message": "Hello from Flask!"})
+
+    @app.route('/api/data')
+    def get_data():
+        return jsonify({"data": "Hello from Flask API"})
+
+    if __name__ == '__main__':
+        app.run(debug=True, host='0.0.0.0', port=5000)
+    ```
+7. Membuka pgAdmin lalu Masuk menggunakan user postgres atau user yang Anda buat sebelumnya.
+8. - Klik kanan pada menu Databases → pilih Create → Database.
+    - Isi nama database, misalnya test_db, dan simpan.
+9. Membuat tabel melalui psql atau pgAdmin menggunakan perintah
+    ```bash
+    CREATE TABLE IF NOT EXISTS items (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100),
+    description TEXT
+    );
+    ```
+10. Menambahkan fungsi CRUD pada file app.py
+    ```bash
+    from flask import request
+
+    @app.route('/api/items', methods=['GET'])
+    def get_items():
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, description FROM items;")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        items = []
+        for row in rows:
+            items.append({"id": row[0], "name": row[1], "description": row[2]})
+        return jsonify(items)
+
+    @app.route('/api/items', methods=['POST'])
+    def create_item():
+        data = request.json
+        name = data['name']
+        description = data['description']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO items (name, description) VALUES (%s, %s) RETURNING id;",
+                    (name, description))
+        new_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({"id": new_id, "name": name, "description": description}), 201
+    ```
+11. Jalankan flask menggunakan perintah
+    ```bash
+    python app.py
+    ```
+12. Cek endpoint menggunakan POSTMAN atau curl dengan perintah dibawah ini 
+    ```bash
+        # GET
+    curl http://localhost:5000/api/items
+
+    # POST
+    curl -X POST -H "Content-Type: application/json" \
+        -d '{"name": "Test Item", "description": "Test Description"}' \
+        http://localhost:5000/api/items
+    ```
+13. Error handling
+- Jika terjadi error saat menginstall 'psycopg2-binary', 
+    ```
+    Pastikan Python Versi Stabil (3.11.x atau 3.10.x), 
+    ```
+    ```
+    tambahkan Path PostgreSQL ke Environment     Variables: Tambahkan lokasi file libpq.dll (biasanya C:\Program Files\PostgreSQL\<versi>\bin) ke sistem PATH.  
+    ```
+- jika terjadi error InsufficientPrivilege: permission denied for table items, gunakan perintah berikut
+    ```bash
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO student;
+    ```
+- jika terjadi Connection Refused, lakukan verifikasi pgAdmin dengan perintah
+    ```
+    pg_ctl status
+    ```
+- jika GET Endpoint Kosong maka gunakan endpoint POST untuk menambahkan data
+    ```bash
+    curl -X POST -H "Content-Type: application/json" \
+    -d '{"name": "Item A", "description": "Deskripsi Item A"}' \
+    http://localhost:5000/api/items
+    ```
