@@ -259,3 +259,56 @@ Jalankan aplikasi Flask:
     -d '{"name": "Item A", "description": "Deskripsi Item A"}' \
     http://localhost:5000/api/items
     ```
+
+<br><br>
+
+# Modul Praktikum 06 - Dockerization Bagian 1 (Membuat Dockerfile untuk Flask)
+
+1. menjalankan perintah 
+    ```bash
+    docker info
+    ```
+
+- jika menghasilkan error seperti :
+    ```bash
+    Server:
+    ERROR: error during connect: Get "http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.47/info": open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.
+    ```
+2.  buka aplikasi Docker Desktop dan tunggu hingga status "Docker is running" muncul.
+
+3. Buatlah file dockerfile pada folder backend, isikan kode dibawah ini pada file dockerfile
+    ```
+    # backend/Dockerfile
+    FROM python:3.9-slim
+
+    WORKDIR /app
+
+    COPY requirements.txt requirements.txt
+    RUN pip install --no-cache-dir -r requirements.txt
+
+    COPY . .
+
+    EXPOSE 5000
+    CMD ["python", "app.py"]
+    ```
+
+4. Tambahkan kode dibawah ini pada file requirements.txt
+    ```
+    flask
+    flask-cors
+    psycopg2-binary
+    ```
+
+5. jalankan perintah dibawah ini untuk membangun image docker
+    ```bash
+    cd backend
+    docker build -t flask-backend:1.0 .
+    ```
+6. jalankan container menggunakan perintah
+    ```bash
+    docker run -d -p 5000:5000 --name flask-container flask-backend:1.0
+    ```
+7. Cek aplikasi Flask berjalan di browser pada alamat
+    ```bash
+    http://localhost:5000.
+    ```
