@@ -312,3 +312,66 @@ Jalankan aplikasi Flask:
     ```bash
     http://localhost:5000.
     ```
+<br><br>
+
+# Modul Praktikum 07 – Dockerization Bagian 2 (Membuat Dockerfile untuk React dengan Vite)
+
+1. Cek status Docker dengan perintah
+
+    ```bash
+    docker info
+    ```
+Jika Docker belum berjalan, akan muncul error seperti ini
+
+    ```bash
+    ERROR: error during connect: Get "http://%2F%2F.%2Fpipe%2FdockerDesktopLinuxEngine/v1.47/info": open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.
+    ```
+
+Solusi: Pastikan aplikasi Docker Desktop dibuka dan menunggu hingga status "Docker is running" muncul.
+
+2. Buat file Dockerfile di dalam folder frontend/my-react-app.
+
+3. Isi Dockerfile dengan script berikut
+    ```dockerfile
+    # frontend/my-react-app/Dockerfile
+    FROM node:14-alpine
+
+    WORKDIR /app
+
+    COPY package*.json ./
+    RUN npm install
+
+    COPY . .
+
+    # Build untuk production menggunakan Vite
+    RUN npm run build
+
+    # Gunakan Nginx untuk serve static file
+    FROM nginx:stable-alpine
+    COPY --from=0 /app/dist /usr/share/nginx/html
+
+    EXPOSE 80
+    CMD ["nginx", "-g", "daemon off;"]
+    ```
+4. Jalankan perintah build untuk menghasilkan folder build
+    ```bash
+    npm run build
+    ```
+5. Kemudian, bangun Docker image dengan perintah
+    ```bash
+    cd frontend/my-react-app
+    docker build -t react-frontend-vite:1.0 .
+    ```
+jika Docker build gagal, Periksa apakah Dockerfile ada di direktori yang benar. Pastikan Anda menjalankan perintah dari direktori yang tepat (frontend/my-react-app).
+
+6. Run Docker Container dengan perintah
+    ```bash
+    docker run -d -p 3000:80 --name react-container-vite react-frontend-vite:1.0
+    ```
+Cek apakah port 3000 sudah digunakan dengan perintah docker ps. Jika sudah digunakan, jalankan container di port lain, misalnya docker run -d -p 4000:80 ....
+
+7.  Verifikasi di Browser
+    ```bash
+    http://localhost:3000
+    ```
+

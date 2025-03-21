@@ -4,7 +4,7 @@ function App() {
   const [apiData, setApiData] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/data')
+    fetch('localhost:5000/api/data')
       .then(response => response.json())
       .then(data => {
         setApiData(data.data);
@@ -15,7 +15,7 @@ function App() {
   return (
     <div style={{ textAlign: 'center', marginTop: '50px' }}>
       <h1>React & Flask Integration</h1>
-      <p>{apiData ? apiData : "Hello from flash API"}</p>
+      <p>{apiData ? apiData : "Loading data ..."}</p>
     </div>
   );
 }
