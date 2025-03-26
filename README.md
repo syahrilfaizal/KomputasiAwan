@@ -78,7 +78,7 @@ Jalankan aplikasi Flask:
 
 2. Menambahkan Endpoint pada file app.py
     ```bash
-    @app.route('/api/data')
+    @app.route)
     def get_data():
     return jsonify({"data": "Hello from Flask API"})
     ```
@@ -89,7 +89,7 @@ Jalankan aplikasi Flask:
     ```
     dan mengaksesnya di url
     ```bash
-    http://localhost:5000/api/data.
+    http://localhost:5000/.
     ```
 
 4. Memanggil endpoint dari react pada file App.jsx
@@ -100,7 +100,7 @@ Jalankan aplikasi Flask:
     const [apiData, setApiData] = useState(null);
 
     useEffect(() => {
-        fetch('http://localhost:5000/api/data')
+        fetch('http://localhost:5000/')
         .then(response => response.json())
         .then(data => {
             setApiData(data.data);
@@ -170,7 +170,7 @@ Jalankan aplikasi Flask:
     def home():
         return jsonify({"message": "Hello from Flask!"})
 
-    @app.route('/api/data')
+    @app.route('')
     def get_data():
         return jsonify({"data": "Hello from Flask API"})
 
