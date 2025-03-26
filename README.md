@@ -375,3 +375,189 @@ Cek apakah port 3000 sudah digunakan dengan perintah docker ps. Jika sudah digun
     http://localhost:3000
     ```
 
+
+# Modul Praktikum 08 – Integrasi Full Stack dengan Docker Compose (Review & Latihan Mandiri)
+
+1. Buat file docker-compose.yml di dalam folder cloud-project yang berisi :
+    ```bash
+        version: '3.7'
+    services:
+    backend:
+        build: 
+        context: ./backend
+        container_name: flask_container
+        ports:
+        - "5000:5000"
+        depends_on:
+        - db
+        environment:
+        - DB_HOST=db
+        - DB_NAME=test_db
+        - DB_USER=student
+        - DB_PASSWORD=password
+
+    frontend:
+        build:
+        context: ./frontend/my-react-app
+        container_name: react_container
+        ports:
+        - "3000:80"
+        depends_on:
+        - backend
+
+    db:
+        image: postgres:12-alpine
+        container_name: postgres_container
+        environment:
+        - POSTGRES_DB=test_db
+        - POSTGRES_USER=student
+        - POSTGRES_PASSWORD=password
+        ports:
+        - "5432:5432"
+        volumes:
+        - db_data:/var/lib/postgresql/data
+        - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+    volumes:
+    db_data:
+
+    ```
+Penanganan Error:
+- Port Konflik: Jika port yang Anda tentukan (3000:80 untuk frontend atau 5000:5000 untuk backend) sudah digunakan oleh aplikasi lain, Anda perlu mengubahnya. Misalnya, ubah 3000:80 menjadi 4000:80 jika port 3000 sudah digunakan
+- Service not found (depends_on): Pastikan bahwa semua service yang disebutkan dalam depends_on sudah terdefinisi dengan benar dalam file docker-compose.yml. Pastikan backend dan db services benar-benar ada.
+
+2. Buat file init.sql di dalam folder cloud-project yang berisi :
+    ```sql
+        CREATE TABLE IF NOT EXISTS items (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT
+    );
+
+    INSERT INTO items (name, description) VALUES
+    ('Test Item', 'This is a test description'),
+    ('Test Item 2', 'This is a test description 2');
+    ```
+Penanganan error :
+- Database tidak ditemukan: <br>Periksa apakah Anda sudah mengonfigurasi environment variable di service db dengan benar dan pastikan POSTGRES_DB, POSTGRES_USER, dan POSTGRES_PASSWORD sudah sesuai.
+
+3. Sesuaikan file app.py untuk menghubungkan Flask dengan PostgreSQL menggunakan environment variables.
+    ```js
+        import os
+    import psycopg2
+    from flask import Flask, jsonify, request
+
+    # Fungsi untuk koneksi ke database PostgreSQL
+    def get_db_connection():
+        conn = psycopg2.connect(
+            host=os.environ.get("DB_HOST", "localhost"),
+            database=os.environ.get("DB_NAME", "test_db"),
+            user=os.environ.get("DB_USER", "student"),
+            password=os.environ.get("DB_PASSWORD", "password")
+        )
+        return conn
+
+    # Inisialisasi Flask
+    app = Flask(__name__)
+
+    @app.route('/')
+    def home():
+        return jsonify({"message": "Hello from Flask!"})
+
+    # Endpoint untuk membaca data dari tabel 'items'
+    @app.route('/api/items', methods=['GET'])
+    def get_items():
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT id, name, description FROM items;")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+
+        items = [{"id": row[0], "name": row[1], "description": row[2]} for row in rows]
+        return jsonify(items)
+
+    # Endpoint untuk menambahkan data ke tabel 'items'
+    @app.route('/api/items', methods=['POST'])
+    def create_item():
+        data = request.json
+        name = data['name']
+        description = data['description']
+
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO items (name, description) VALUES (%s, %s) RETURNING id;", (name, description))
+        new_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+
+        return jsonify({"id": new_id, "name": name, "description": description}), 201
+
+    # Jalankan Flask
+    if __name__ == '__main__':
+        app.run(debug=True, host='0.0.0.0', port=5000)
+    ```
+Penanganan error :
+- Koneksi Database Gagal: <br>
+Jika aplikasi Flask gagal terhubung ke PostgreSQL, pastikan environment variables di Docker Compose sudah terpasang dengan benar.
+
+4. Sesuaikan file App.jsx di frontend untuk mengakses data dari Flask melalui API 
+    ```bash
+        import { useState, useEffect } from "react";
+
+    function App() {
+    const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch("http://localhost:5000/api/items")
+        .then((response) => {
+            if (!response.ok) {
+            throw new Error("Network response was not ok");
+            }
+            return response.json();
+        })
+        .then((data) => {
+            setItems(data);
+            setLoading(false);
+        })
+        .catch((error) => {
+            console.error("Error fetching data:", error);
+            setLoading(false);
+        });
+    }, []);
+
+    if (loading) {
+        return <div>Loading data...</div>;
+    }
+
+    return (
+        <div>
+        <h1>React & Flask Integration</h1>
+        <ul>
+            {items.map((item) => (
+            <li key={item.id}>
+                <strong>{item.name}</strong>: {item.description}
+            </li>
+            ))}
+        </ul>
+        </div>
+    );
+    }
+
+    export default App;
+    ```
+
+5. Jalankan perintah berikut untuk membangun dan menjalankan semua container
+    ```bash
+    docker-compose up -d --build
+    ```
+
+6. Verifikasi Integrasi dengan mengakses di browser
+    ```bash
+    http://localhost:3000
+    ```
+Penanganan error :
+- Masalah CORS: <br>
+Pastikan Anda sudah mengaktifkan CORS di Flask jika ada masalah mengakses API Flask dari React.
